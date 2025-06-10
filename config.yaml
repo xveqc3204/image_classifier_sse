@@ -1,0 +1,102 @@
+# Image Classifier SSE Configuration - Object Detection Based
+
+# Data Configuration
+data:
+  raw_data_path: "data/raw"
+  processed_data_path: "data/processed"
+  batch_size: 32
+  train_split: 0.7
+  val_split: 0.2
+  test_split: 0.1
+
+# Object Category Mapping and Weights
+categories:
+  biological:
+    - "biohazard symbol"
+    - "petri dish" 
+    - "pipette"
+  
+  chemical:
+    - "chemical substance"
+    - "fume_hood"
+    - "gas mask"
+    - "gas tank"
+    - "hazmat suit"
+    - "ventilation"
+  
+  neutral:
+    - "computer"
+    - "tech equipment"
+    - "gloves"
+    - "glassware"      # Used in both chemical and biological labs
+    - "lab coat"       # Used in both chemical and biological labs
+    - "eye protection" # Used in both chemical and biological labs
+
+# Object Weights for Classification
+# TO MODIFY: Change weights below (0.0 = neutral, 1.0 = strong indicator)
+# TO ADD NEW OBJECTS: Add them to the appropriate section
+object_weights:
+  # === STRONG CHEMICAL INDICATORS ===
+  chemical_substance: 1.0
+  gas_mask: 1.0
+  gas_tank: 1.0
+  hazmat_suit: 1.0
+  
+  # === MODERATE CHEMICAL INDICATORS ===  
+  fume_hood: 0.7
+  ventilation: 0.6
+  
+  # === STRONG BIOLOGICAL INDICATORS ===
+  biohazard_symbol: 1.0
+  petri_dish: 1.0
+  pipette: 1.0
+  
+  # === MODERATE BIOLOGICAL INDICATORS ===
+  # (currently none - add here if needed)
+  
+  # === NEUTRAL OBJECTS ===
+  computer: 0.0
+  tech_equipment: 0.0
+  gloves: 0.0
+  glassware: 0.0      # Used in both environments
+  lab_coat: 0.0       # Used in both environments
+  eye_protection: 0.0 # Used in both environments
+
+# Model Configuration - Neural Network for Object Features
+model:
+  # Neural network architecture for object features
+  hidden_sizes: [64, 32, 16]  # Hidden layer sizes
+  dropout: 0.3
+  input_features: 14  # Number of object-based features
+  
+  # Alternative: Use rule-based classifier only
+  use_rule_based_only: false
+
+# Training Configuration
+training:
+  epochs: 100  # More epochs for feature-based learning
+  learning_rate: 0.001
+  optimizer: "adam"
+  loss_function: "binary_crossentropy"
+  early_stopping_patience: 15
+  reduce_lr_patience: 8
+  
+# Output Configuration
+output:
+  model_save_path: "models/saved_models"
+  logs_path: "logs"
+  threshold: 0.5  # Decision threshold for binary classification
+
+# Object Detection Analysis Parameters
+analysis:
+  # Minimum confidence for object detections
+  min_detection_confidence: 0.3
+  
+  # Maximum number of objects to consider per image
+  max_objects_per_image: 20
+  
+  # Whether to use object area in calculations
+  use_object_areas: true
+  
+  # Whether to use spatial information
+  use_spatial_features: false
