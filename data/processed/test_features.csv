@@ -1,0 +1,10 @@
+total_objects,chemical_objects,biological_objects,neutral_objects,avg_chemical_confidence,avg_biological_confidence,max_chemical_confidence,max_biological_confidence,chemical_weighted_score,biological_weighted_score,chemical_area_ratio,biological_area_ratio,chemical_object_ratio,biological_object_ratio,image_id,image_filename,label,confidence,label_binary
+1,0,1,0,0.0,1.0,0.0,1.0,0.0,1.0,0.0,1.0,0.0,1.0,0_76,frame_00049_jpg.rf.33a1e3ffdde0ae4928679239bb0f4dd7.jpg,Biological,1.0,1
+4,2,0,2,1.0,0.0,1.0,0.0,2.0,0.0,0.0997686018069525,0.0,1.0,0.0,0_7,frame_00014_jpg.rf.940fd2a3b72d9e14173eb213919c92e4.jpg,Chemical,1.0,0
+3,1,0,2,1.0,0.0,1.0,0.0,1.0,0.0,0.13776569426095295,0.0,1.0,0.0,0_134,frame_00013_jpg.rf.64536c0225be966c5b2474923362b278.jpg,Chemical,1.0,0
+5,3,0,2,1.0,0.0,1.0,0.0,3.0,0.0,0.9277693550799329,0.0,1.0,0.0,0_1,frame_00013_jpg.rf.db3f8e29f7092f7cdda911a923b3f837.jpg,Chemical,1.0,0
+5,0,2,3,0.0,1.0,0.0,1.0,0.0,2.0,0.0,0.04160280196765857,0.0,1.0,0_61,frame_00041_jpg.rf.09aebbb65689b773a84e02076538262a.jpg,Biological,1.0,1
+6,3,0,3,1.0,0.0,1.0,0.0,3.0,0.0,0.10872314760323969,0.0,1.0,0.0,0_73,frame_00031_jpg.rf.fe75d86110f1d6606aaa25a6dd5cae94.jpg,Chemical,1.0,0
+4,2,0,2,1.0,0.0,1.0,0.0,2.0,0.0,0.0307879887793387,0.0,1.0,0.0,0_79,frame_00011_jpg.rf.86036e9f68e37481c290b20f5d8ae988.jpg,Chemical,1.0,0
+6,1,1,4,1.0,1.0,1.0,1.0,1.0,1.0,0.04876369686191268,0.05041305719694797,0.5,0.5,0_30,frame_00023_jpg.rf.f85166bb61e5df676a4ef1999f7375a8.jpg,Chemical,0.5,0
+7,0,3,4,0.0,1.0,0.0,1.0,0.0,3.0,0.0,0.052902557259764504,0.0,1.0,0_54,frame_00034_jpg.rf.46a7c848b9bd046529dfa3609c6d88fd.jpg,Biological,1.0,1

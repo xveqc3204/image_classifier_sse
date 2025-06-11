@@ -112,7 +112,6 @@ class SSETrainer:
             mode='max',
             factor=0.5,
             patience=train_config['reduce_lr_patience'],
-            verbose=True
         )
         
         # Early stopping
