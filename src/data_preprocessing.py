@@ -377,17 +377,7 @@ class COCOObjectProcessor:
         print("Skipping visualization due to matplotlib version issue")
 
         
-        ## Create train/val/test splits
-        # if df is not None and len(df) > 0:
-        #     train_df, val_df, test_df = self.create_train_val_test_split(df)
-            
-        #     # Show sample analysis
-        #     self._show_sample_analysis(all_detections, image_classifications)
-            
-        #     return train_df, val_df, test_df
-        # else:
-        #     print("Error: Could not create feature dataset")
-        #     return None, None, None
+        # Create train/val/test splits
         
         result = self.create_train_val_test_split(df)
         if result is not None:
