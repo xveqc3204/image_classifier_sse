@@ -377,17 +377,24 @@ class COCOObjectProcessor:
         print("Skipping visualization due to matplotlib version issue")
 
         
-        # Create train/val/test splits
-        if df is not None and len(df) > 0:
-            train_df, val_df, test_df = self.create_train_val_test_split(df)
+        ## Create train/val/test splits
+        # if df is not None and len(df) > 0:
+        #     train_df, val_df, test_df = self.create_train_val_test_split(df)
             
-            # Show sample analysis
+        #     # Show sample analysis
+        #     self._show_sample_analysis(all_detections, image_classifications)
+            
+        #     return train_df, val_df, test_df
+        # else:
+        #     print("Error: Could not create feature dataset")
+        #     return None, None, None
+        
+        result = self.create_train_val_test_split(df)
+        if result is not None:
+            train_df, val_df, test_df = result
             self._show_sample_analysis(all_detections, image_classifications)
-            
-            return train_df, val_df, test_df
         else:
-            print("Error: Could not create feature dataset")
-            return None, None, None
+            train_df, val_df, test_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     
     def _show_sample_analysis(self, all_detections, image_classifications, num_samples=3):
         """Show detailed analysis for sample images"""
@@ -428,7 +435,12 @@ def main():
     ]
     
     # Process all data
-    train_df, val_df, test_df = processor.process_all_data(annotation_files, image_directories)
+    processed_data = processor.process_all_data(annotation_files, image_directories)
+
+    if processed_data is not None:
+        train_df, val_df, test_df = processed_data
+    else:
+        train_df, val_df, test_df = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     
     if train_df is not None:
         print(f"\nData preprocessing complete!")
