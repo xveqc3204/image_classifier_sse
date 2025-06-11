@@ -23,14 +23,37 @@ categories:
     - "gas tank"
     - "hazmat suit"
     - "ventilation"
+    - "exclamation_hazard"
+    - "white_powder"
+    - "heater"
+    - "mortar"
+    - "mortar_and_pestile"
   
   neutral:
     - "computer"
+    - "container"
     - "tech equipment"
     - "gloves"
     - "glassware"      # Used in both chemical and biological labs
+    - "beaker"
+    - "faucet"
+    - "fauset"
     - "lab coat"       # Used in both chemical and biological labs
     - "eye protection" # Used in both chemical and biological labs
+    - "eye_wash"
+    - "fire_extinguis"
+    - "flask"
+    - "funnel"
+    - "glass_tube"
+    - "magnetic_hazard"
+    - "scale"
+    - "shower"
+    - "stir_rod"
+    - "stirrer"
+    - "syringe"
+    - "tube"
+    - "tweezers"
+    - "waste"
 
 # Object Weights for Classification
 # TO MODIFY: Change weights below (0.0 = neutral, 1.0 = strong indicator)
@@ -41,10 +64,17 @@ object_weights:
   gas_mask: 1.0
   gas_tank: 1.0
   hazmat_suit: 1.0
+  exclamation_hazard: 1.0
+  white_powder: 1.0
   
   # === MODERATE CHEMICAL INDICATORS ===  
   fume_hood: 0.7
   ventilation: 0.6
+  drug_container: 0.5
+  flammable_hazard: 0.7
+  heater: 0.5
+  mortar: 0.7
+  mortar_and_pestile: 0.7
   
   # === STRONG BIOLOGICAL INDICATORS ===
   biohazard_symbol: 1.0
@@ -56,11 +86,29 @@ object_weights:
   
   # === NEUTRAL OBJECTS ===
   computer: 0.0
+  container: 0.0
   tech_equipment: 0.0
   gloves: 0.0
   glassware: 0.0      # Used in both environments
+  beakers: 0.0
+  faucet: 0.0
+  fauset: 0.0         ### Too lazy to change the label in the data set
   lab_coat: 0.0       # Used in both environments
   eye_protection: 0.0 # Used in both environments
+  eye_wash: 0.0
+  fire_extinguis: 0.0     ### Also too lazy to fix the label
+  flask: 0.0
+  funnel: 0.0
+  glass_tube: 0.0
+  magnetic_hazard: 0.0
+  scale: 0.0
+  shower: 0.0
+  stir_rod: 0.0
+  stirrer: 0.0
+  syringe: 0.0
+  tube: 0.0
+  tweezers: 0.0
+  waste: 0.0
 
 # Model Configuration - Neural Network for Object Features
 model:

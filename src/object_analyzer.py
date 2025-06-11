@@ -47,13 +47,21 @@ class ObjectAnalyzer:
             "chemical substance": 1.0,
             "gas mask": 1.0, 
             "gas tank": 1.0,
-            "hazmat suit": 1.0
+            "hazmat suit": 1.0,
+            "exclamation_hazard": 1.0,
+            "white_powder": 1.0
         }
         
         # Moderate indicators (medium confidence)
         self.moderate_chemical_objects = {
             "fume_hood": 0.7,
-            "ventilation": 0.6
+            "ventilation": 0.6,
+            "drug_container": 0.5,
+            "flammable_hazard": 0.7,
+            "heater": 0.5,
+            "mortar": 0.7,
+            "mortar_and_pestile": 0.7
+
         }
         
         # === BIOLOGICAL INDICATORS ===
@@ -61,7 +69,7 @@ class ObjectAnalyzer:
         self.strong_biological_objects = {
             "biohazard symbol": 1.0,
             "petri dish": 1.0,
-            "pipette": 1.0  
+            "pipette": 1.0
         }
         
         # Moderate indicators (medium confidence)
@@ -74,11 +82,29 @@ class ObjectAnalyzer:
         # Neutral objects (don't indicate specific environment - used in both)
         self.neutral_objects = {
             "computer": 0.0,
+            "container": 0.0,
             "tech equipment": 0.0,
             "gloves": 0.0,
             "glassware": 0.0,      # Used in both chemical and biological labs
+            "beakers": 0.0,
+            "faucet": 0.0,
+            "fauset": 0.0,
             "lab coat": 0.0,       # Used in both chemical and biological labs  
-            "eye protection": 0.0  # Used in both chemical and biological labs
+            "eye protection": 0.0,  # Used in both chemical and biological labs
+            "eye_wash": 0.0,
+            "fire_extinguis": 0.0,     ### Also too lazy to fix the label
+            "flask": 0.0,
+            "funnel": 0.0,
+            "glass_tube": 0.0,
+            "magnetic_hazard": 0.0,
+            "scale": 0.0,
+            "shower": 0.0,
+            "stir_rod": 0.0,
+            "stirrer": 0.0,
+            "syringe": 0.0,
+            "tube": 0.0,
+            "tweezers": 0.0,
+            "waste": 0.0
         }
         
         # Create combined mappings
