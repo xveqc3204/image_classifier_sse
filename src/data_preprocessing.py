@@ -250,7 +250,7 @@ class COCOObjectProcessor:
         sizes = list(classification_counts.values())
         colors_pie = ['red', 'blue', 'gray']
         
-        ax2.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors_pie[:len(labels)], alpha=0.7)
+        ax2.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors_pie[:len(labels)])
         ax2.set_title('Image Classification Distribution')
         
         # 3. Feature correlation heatmap
@@ -372,7 +372,10 @@ class COCOObjectProcessor:
         df = self.create_object_features_dataset(all_images, all_detections, image_classifications)
         
         # Create visualizations
-        self.visualize_object_analysis(object_counts, classification_counts, df)
+        # NEW (comment it out):
+        # self.visualize_object_analysis(object_counts, classification_counts, df)
+        print("Skipping visualization due to matplotlib version issue")
+
         
         # Create train/val/test splits
         if df is not None and len(df) > 0:
