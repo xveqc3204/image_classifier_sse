@@ -61,7 +61,7 @@ class ObjectAnalyzer:
         self.strong_biological_objects = {
             "biohazard symbol": 1.0,
             "petri dish": 1.0,
-            "pipette": 1.0
+            "pipette": 1.0  
         }
         
         # Moderate indicators (medium confidence)
