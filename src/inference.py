@@ -1,9 +1,10 @@
 """
-Inference script for Image Classifier SSE - Object Detection Based
-Use trained model to classify images based on their detected objects
+Enhanced Inference script for Image Classifier SSE - Object Detection Based
+Now includes comprehensive visualizations with confusion matrix and precision-recall curves
 """
 
 import os
+import sys
 import torch
 import yaml
 import numpy as np
@@ -15,15 +16,19 @@ import json
 import joblib
 import torch.serialization
 
+# Add src directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 from model import create_model, SimpleRuleBasedClassifier, ModelEvaluator
 from object_analyzer import ObjectAnalyzer
+from enhanced_visualizations import EnhancedVisualizer
 
 class SSEObjectPredictor:
-    """Class for making predictions based on object detection results"""
+    """Enhanced class for making predictions based on object detection results"""
     
     def __init__(self, model_path=None, config_path="config.yaml", use_neural_network=True):
         """
-        Initialize predictor
+        Initialize enhanced predictor
         
         Args:
             model_path: Path to saved neural network model (optional)
@@ -36,6 +41,9 @@ class SSEObjectPredictor:
         
         # Initialize object analyzer
         self.analyzer = ObjectAnalyzer(config_path)
+        
+        # Initialize enhanced visualizer
+        self.visualizer = EnhancedVisualizer(save_dir="inference_visualizations")
         
         # Decision threshold
         self.threshold = self.config['output']['threshold']
@@ -242,15 +250,39 @@ class SSEObjectPredictor:
         
         return pd.DataFrame(results)
     
-    def visualize_prediction(self, detections, prediction=None, confidence=None, save_path=None):
+    def enhanced_visualize_prediction(self, detections, prediction=None, confidence=None, 
+                                    save_path=None, show_detailed=True):
         """
-        Visualize the prediction based on detected objects
+        Enhanced visualization of the prediction with comprehensive analysis
         
         Args:
             detections: List of object detections
             prediction: Predicted class (will compute if None)
             confidence: Confidence score (will compute if None)
             save_path: Path to save visualization
+            show_detailed: Whether to show detailed analysis
+        """
+        if prediction is None or confidence is None:
+            prediction, confidence, detailed = self.predict_from_detections(
+                detections, return_detailed=True
+            )
+        else:
+            _, _, detailed = self.predict_from_detections(detections, return_detailed=True)
+        
+        if show_detailed:
+            # Use enhanced visualizer for comprehensive analysis
+            self.visualizer.plot_object_analysis_enhanced(
+                detections, prediction, confidence, detailed, save_path
+            )
+        else:
+            # Use original visualization method
+            self.visualize_prediction(detections, prediction, confidence, save_path)
+        
+        return prediction, confidence
+    
+    def visualize_prediction(self, detections, prediction=None, confidence=None, save_path=None):
+        """
+        Original visualization method (kept for compatibility)
         """
         if prediction is None or confidence is None:
             prediction, confidence, detailed = self.predict_from_detections(
@@ -342,23 +374,152 @@ class SSEObjectPredictor:
         print(f"Method: {detailed.get('method', 'Rule-Based')}")
         
         return prediction, confidence
-
-def create_gradio_interface(predictor):
-    """Create Gradio web interface for object-based predictions"""
     
-    def predict_from_objects_text(objects_text, use_nn):
+    def batch_analysis_with_visualization(self, annotation_file, save_summary=True):
         """
-        Function for Gradio interface - predict from text input of objects
+        Perform batch analysis with comprehensive visualizations
         
         Args:
-            objects_text: Text description of detected objects (one per line)
-            use_nn: Whether to use neural network or rule-based
+            annotation_file: Path to COCO annotation file
+            save_summary: Whether to save summary visualizations
+            
+        Returns:
+            DataFrame with results and creates summary visualizations
+        """
+        print(f"Performing comprehensive batch analysis...")
+        
+        # Get batch predictions
+        results_df = self.batch_predict_from_coco(annotation_file)
+        
+        print(f"Analysis complete! Results summary:")
+        print(f"   Total images processed: {len(results_df)}")
+        
+        # Summary statistics
+        prediction_counts = results_df['prediction'].value_counts()
+        print(f"   Prediction distribution:")
+        for pred, count in prediction_counts.items():
+            percentage = (count / len(results_df)) * 100
+            print(f"     {pred}: {count} ({percentage:.1f}%)")
+        
+        print(f"   Average confidence: {results_df['confidence'].mean():.3f}")
+        print(f"   Average objects per image: {results_df['num_objects'].mean():.1f}")
+        
+        if save_summary:
+            self._create_batch_summary_visualizations(results_df, annotation_file)
+        
+        return results_df
+    
+    def _create_batch_summary_visualizations(self, results_df, annotation_file):
+        """Create summary visualizations for batch analysis"""
+        print(f"Creating batch summary visualizations...")
+        
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+        
+        # 1. Prediction distribution pie chart
+        prediction_counts = results_df['prediction'].value_counts()
+        colors = ['#FF6B6B', '#4ECDC4', '#95A5A6']  # Red, teal, gray
+        
+        wedges, texts, autotexts = ax1.pie(prediction_counts.values, labels=prediction_counts.index, 
+                                          autopct='%1.1f%%', colors=colors[:len(prediction_counts)],
+                                          startangle=90, explode=[0.05]*len(prediction_counts))
+        
+        # Enhance text
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontweight('bold')
+            autotext.set_fontsize(12)
+        
+        ax1.set_title('Prediction Distribution', fontsize=14, fontweight='bold')
+        
+        # 2. Confidence distribution histogram
+        for pred_class in prediction_counts.index:
+            class_confidences = results_df[results_df['prediction'] == pred_class]['confidence']
+            color = '#FF6B6B' if pred_class == 'Chemical' else '#4ECDC4' if pred_class == 'Biological' else '#95A5A6'
+            ax2.hist(class_confidences, bins=20, alpha=0.7, label=pred_class, 
+                    color=color, edgecolor='black', linewidth=0.5)
+        
+        ax2.set_title('Confidence Score Distribution', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('Confidence Score', fontsize=12)
+        ax2.set_ylabel('Number of Images', fontsize=12)
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        
+        # 3. Objects per image vs confidence
+        scatter = ax3.scatter(results_df['num_objects'], results_df['confidence'], 
+                             c=results_df['prediction'].map({'Chemical': 0, 'Biological': 1, 'Unknown': 0.5}),
+                             cmap='RdYlBu', alpha=0.7, s=60, edgecolors='black', linewidth=0.5)
+        
+        ax3.set_title('Objects per Image vs Confidence', fontsize=14, fontweight='bold')
+        ax3.set_xlabel('Number of Objects Detected', fontsize=12)
+        ax3.set_ylabel('Confidence Score', fontsize=12)
+        ax3.grid(True, alpha=0.3)
+        
+        # Add colorbar
+        cbar = plt.colorbar(scatter, ax=ax3)
+        cbar.set_label('Prediction Type', fontsize=11)
+        cbar.set_ticks([0, 0.5, 1])
+        cbar.set_ticklabels(['Chemical', 'Unknown', 'Biological'])
+        
+        # 4. Method usage (if applicable)
+        if 'method' in results_df.columns:
+            method_counts = results_df['method'].value_counts()
+            bars = ax4.bar(method_counts.index, method_counts.values, 
+                          color=['#3498DB', '#E74C3C'], alpha=0.8, 
+                          edgecolor='black', linewidth=1)
+            
+            # Add value labels on bars
+            for bar in bars:
+                height = bar.get_height()
+                ax4.text(bar.get_x() + bar.get_width()/2., height + 1,
+                        f'{int(height)}', ha='center', va='bottom', 
+                        fontweight='bold', fontsize=12)
+            
+            ax4.set_title('Classification Method Usage', fontsize=14, fontweight='bold')
+            ax4.set_ylabel('Number of Images', fontsize=12)
+            ax4.grid(True, alpha=0.3, axis='y')
+        else:
+            # Show average confidence by prediction type
+            avg_conf_by_pred = results_df.groupby('prediction')['confidence'].mean()
+            bars = ax4.bar(avg_conf_by_pred.index, avg_conf_by_pred.values,
+                          color=['#FF6B6B', '#4ECDC4', '#95A5A6'][:len(avg_conf_by_pred)], 
+                          alpha=0.8, edgecolor='black', linewidth=1)
+            
+            # Add value labels
+            for bar, conf in zip(bars, avg_conf_by_pred.values):
+                height = bar.get_height()
+                ax4.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                        f'{conf:.3f}', ha='center', va='bottom', 
+                        fontweight='bold', fontsize=12)
+            
+            ax4.set_title('Average Confidence by Prediction', fontsize=14, fontweight='bold')
+            ax4.set_ylabel('Average Confidence', fontsize=12)
+            ax4.set_ylim(0, 1.1)
+            ax4.grid(True, alpha=0.3, axis='y')
+        
+        plt.suptitle(f'Batch Analysis Summary - {os.path.basename(annotation_file)}', 
+                    fontsize=16, fontweight='bold')
+        plt.tight_layout()
+        
+        # Save summary
+        summary_path = os.path.join(self.visualizer.save_dir, 
+                                   f"batch_summary_{os.path.basename(annotation_file).replace('.json', '')}.png")
+        plt.savefig(summary_path, dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        print(f"Summary visualization saved to: {summary_path}")
+
+def create_enhanced_gradio_interface(predictor):
+    """Create enhanced Gradio web interface with visualization options"""
+    
+    def predict_from_objects_text(objects_text, use_nn, show_detailed_viz):
+        """
+        Enhanced function for Gradio interface with visualization options
         """
         if not objects_text.strip():
-            return "Please enter detected objects", None, ""
+            return "Please enter detected objects", None, "", None
         
         try:
-            # Parse objects text
+            # Parse objects text (same as before)
             lines = objects_text.strip().split('\n')
             detections = []
             
@@ -418,17 +579,41 @@ def create_gradio_interface(predictor):
                 type_name = "Chemical" if obj_type == 0.0 else "Biological" if obj_type == 1.0 else "Neutral"
                 objects_breakdown += f"- {obj_name} ({obj_conf:.2f}) → {type_name}\n"
             
-            return result_text, prediction, objects_breakdown
+            # Create visualization
+            visualization_plot = None
+            if show_detailed_viz:
+                try:
+                    # Create a temporary plot and return it
+                    import matplotlib
+                    matplotlib.use('Agg')  # Use non-interactive backend
+                    
+                    # Use enhanced visualization
+                    predictor.enhanced_visualize_prediction(
+                        detections, prediction, confidence, 
+                        save_path="temp_gradio_viz.png", show_detailed=True
+                    )
+                    
+                    visualization_plot = "temp_gradio_viz.png"
+                except Exception as e:
+                    print(f"Visualization error: {e}")
+                    visualization_plot = None
+            
+            return result_text, prediction, objects_breakdown, visualization_plot
             
         except Exception as e:
-            return f"Error processing objects: {str(e)}", None, ""
+            return f"Error processing objects: {str(e)}", None, "", None
     
-    # Create interface
-    with gr.Blocks(title="Image Classifier SSE - Object Detection Based") as interface:
-        gr.Markdown("# Object-Based Environment Classifier")
+    # Create enhanced interface
+    with gr.Blocks(title="Enhanced Image Classifier SSE - Object Detection Based") as interface:
+        gr.Markdown("# Enhanced Object-Based Environment Classifier")
         gr.Markdown("""
-        This system classifies environments as **Chemical** or **Biological** based on detected objects.
+        This enhanced system classifies environments as **Chemical** or **Biological** based on detected objects.
         Enter the objects detected in your image (one per line) with optional confidence scores.
+        
+        **Features:**
+        - Neural Network and Rule-Based classification
+        - Enhanced visualizations with detailed analysis
+        - Comprehensive object analysis
         """)
         
         with gr.Row():
@@ -440,40 +625,50 @@ def create_gradio_interface(predictor):
                     value="gas mask 0.95\nhazmat suit 0.87\nchemical substance 0.82"
                 )
                 
-                use_nn_checkbox = gr.Checkbox(
-                    label="Use Neural Network (if available)",
-                    value=True
-                )
+                with gr.Row():
+                    use_nn_checkbox = gr.Checkbox(
+                        label="Use Neural Network (if available)",
+                        value=True
+                    )
+                    
+                    show_viz_checkbox = gr.Checkbox(
+                        label="Show Enhanced Visualization",
+                        value=True
+                    )
                 
-                predict_btn = gr.Button("Classify Environment", variant="primary")
+                predict_btn = gr.Button("Classify Environment", variant="primary", size="lg")
             
             with gr.Column():
                 result_output = gr.Markdown(label="Classification Result")
                 classification_output = gr.Label(label="Prediction")
                 objects_breakdown = gr.Markdown(label="Objects Analysis")
+                
+                # Visualization output
+                visualization_output = gr.Image(label="Analysis Visualization", type="filepath")
         
         # Example inputs
         gr.Examples(
             examples=[
-                ["gas mask 0.95\nhazmat suit 0.87\nchemical substance 0.82", True],
-                ["petri dish 0.92\npipette 0.88\nbiohazard symbol 0.85", True],
-                ["lab coat 0.80\ncomputer 0.75\ngloves 0.70", False],
+                ["gas mask 0.95\nhazmat suit 0.87\nchemical substance 0.82", True, True],
+                ["petri dish 0.92\npipette 0.88\nbiohazard symbol 0.85", True, True],
+                ["lab coat 0.80\ncomputer 0.75\ngloves 0.70", False, False],
+                ["chemical substance 0.90\npetri dish 0.85\nlab coat 0.75", True, True],  # Mixed case
             ],
-            inputs=[objects_input, use_nn_checkbox],
+            inputs=[objects_input, use_nn_checkbox, show_viz_checkbox],
             label="Example Inputs"
         )
         
         predict_btn.click(
             fn=predict_from_objects_text,
-            inputs=[objects_input, use_nn_checkbox],
-            outputs=[result_output, classification_output, objects_breakdown]
+            inputs=[objects_input, use_nn_checkbox, show_viz_checkbox],
+            outputs=[result_output, classification_output, objects_breakdown, visualization_output]
         )
     
     return interface
 
 def main():
-    """Main function for inference"""
-    parser = argparse.ArgumentParser(description='Image Classifier SSE - Object Detection Based Inference')
+    """Enhanced main function for inference with comprehensive analysis options"""
+    parser = argparse.ArgumentParser(description='Enhanced Image Classifier SSE - Object Detection Based Inference')
     parser.add_argument('--model', type=str, 
                        default='models/saved_models/best_model.pth',
                        help='Path to trained neural network model')
@@ -482,18 +677,20 @@ def main():
     parser.add_argument('--image-id', type=int,
                        help='Specific image ID to predict (requires --coco)')
     parser.add_argument('--interface', action='store_true',
-                       help='Launch Gradio web interface')
+                       help='Launch enhanced Gradio web interface')
     parser.add_argument('--rule-based', action='store_true',
                        help='Use only rule-based classifier (no neural network)')
     parser.add_argument('--config', type=str, default='config.yaml',
                        help='Path to config file')
-    parser.add_argument('--compare', action='store_true',
-                       help='Compare neural network vs rule-based on test set')
+    parser.add_argument('--enhanced-viz', action='store_true',
+                       help='Use enhanced visualizations (default: True)')
+    parser.add_argument('--batch-analysis', action='store_true',
+                       help='Perform comprehensive batch analysis with visualizations')
     
     args = parser.parse_args()
     
-    # Create predictor
-    print("Initializing predictor...")
+    # Create enhanced predictor
+    print("Initializing enhanced predictor...")
     use_nn = not args.rule_based
     predictor = SSEObjectPredictor(
         model_path=args.model if use_nn else None,
@@ -502,52 +699,69 @@ def main():
     )
     
     if use_nn and predictor.neural_model is None:
-        print("Neural network model not available, using rule-based classifier")
+        print("Warning: Neural network model not available, using rule-based classifier")
     
     if args.interface:
-        # Launch Gradio interface
-        print("Launching web interface...")
-        interface = create_gradio_interface(predictor)
+        # Launch enhanced Gradio interface
+        print("Launching enhanced web interface...")
+        interface = create_enhanced_gradio_interface(predictor)
         interface.launch(share=True)
         
     elif args.coco:
         if args.image_id is not None:
-            # Single image prediction from COCO
+            # Single image prediction with enhanced visualization
             print(f"Predicting for image ID {args.image_id} in {args.coco}")
             prediction, confidence, detections = predictor.predict_from_coco_annotation(
                 args.coco, args.image_id
             )
             
             print(f"\nResults for Image ID {args.image_id}:")
-            print(f"Prediction: {prediction}")
-            print(f"Confidence: {confidence:.3f} ({confidence:.1%})")
-            print(f"Objects detected: {len(detections)}")
+            print(f"   Prediction: {prediction}")
+            print(f"   Confidence: {confidence:.3f} ({confidence:.1%})")
+            print(f"   Objects detected: {len(detections)}")
             
             if detections:
-                print("Detected objects:")
+                print("   Detected objects:")
                 for det in detections:
-                    print(f"  - {det['category_name']} (conf: {det['confidence']:.2f})")
+                    print(f"     - {det['category_name']} (conf: {det['confidence']:.2f})")
                 
-                # Visualize
-                predictor.visualize_prediction(detections, prediction, confidence)
+                # Enhanced visualization
+                if args.enhanced_viz:
+                    print("Creating enhanced visualization...")
+                    predictor.enhanced_visualize_prediction(
+                        detections, prediction, confidence, 
+                        save_path=f"prediction_image_{args.image_id}.png"
+                    )
+                else:
+                    predictor.visualize_prediction(detections, prediction, confidence)
+            
+        elif args.batch_analysis:
+            # Comprehensive batch analysis
+            print(f"Performing comprehensive batch analysis...")
+            results_df = predictor.batch_analysis_with_visualization(args.coco)
+            
+            # Save detailed results
+            output_path = f"comprehensive_analysis_{os.path.basename(args.coco).replace('.json', '')}.csv"
+            results_df.to_csv(output_path, index=False)
+            print(f"Detailed results saved to: {output_path}")
             
         else:
-            # Batch prediction from COCO
+            # Standard batch prediction
             print(f"Processing all images in {args.coco}")
             results_df = predictor.batch_predict_from_coco(args.coco)
             
             print(f"\nBatch Results:")
-            print(f"Total images processed: {len(results_df)}")
+            print(f"   Total images processed: {len(results_df)}")
             
             # Summary statistics
             prediction_counts = results_df['prediction'].value_counts()
-            print(f"\nPrediction distribution:")
+            print(f"\n   Prediction distribution:")
             for pred, count in prediction_counts.items():
                 percentage = (count / len(results_df)) * 100
-                print(f"  {pred}: {count} ({percentage:.1f}%)")
+                print(f"     {pred}: {count} ({percentage:.1f}%)")
             
-            print(f"\nAverage confidence: {results_df['confidence'].mean():.3f}")
-            print(f"Average objects per image: {results_df['num_objects'].mean():.1f}")
+            print(f"\n   Average confidence: {results_df['confidence'].mean():.3f}")
+            print(f"   Average objects per image: {results_df['num_objects'].mean():.1f}")
             
             # Save results
             output_path = f"batch_predictions_{os.path.basename(args.coco).replace('.json', '')}.csv"
@@ -558,42 +772,22 @@ def main():
             print(f"\nSample results:")
             print(results_df[['image_filename', 'prediction', 'confidence', 'num_objects']].head(10))
     
-    elif args.compare:
-        # Compare models on test set
-        print("Comparing neural network vs rule-based classifier...")
-        
-        # Load test data
-        data_dir = predictor.config['data']['processed_data_path']
-        test_csv = os.path.join(data_dir, 'test_features.csv')
-        
-        if not os.path.exists(test_csv):
-            print(f"Error: Test data not found at {test_csv}")
-            print("Please run data_preprocessing.py first")
-            return
-        
-        test_df = pd.read_csv(test_csv)
-        print(f"Test set size: {len(test_df)} images")
-        
-        print("Note: Full comparison requires original detection data")
-        print("Consider running the training script which includes model comparison")
-    
     else:
-        print("Please specify --coco, --interface, or --compare")
-        print("Use --help for more information")
+        print("Please specify --coco, --interface, or use --help for more information")
         
-        # Show example usage
-        print(f"\nExample usage:")
-        print(f"  # Launch web interface:")
-        print(f"  python src/inference.py --interface")
-        print(f"  ")
-        print(f"  # Predict from COCO file:")
-        print(f"  python src/inference.py --coco data/raw/annotations/_annotations.coco.json")
-        print(f"  ")
-        print(f"  # Predict specific image:")
-        print(f"  python src/inference.py --coco data/raw/annotations/_annotations.coco.json --image-id 123")
-        print(f"  ")
-        print(f"  # Use only rule-based classifier:")
-        print(f"  python src/inference.py --coco data/raw/annotations/_annotations.coco.json --rule-based")
+        # Show enhanced example usage
+        print(f"\nEnhanced usage examples:")
+        print(f"   # Launch enhanced web interface:")
+        print(f"   python src/inference.py --interface")
+        print(f"   ")
+        print(f"   # Comprehensive batch analysis:")
+        print(f"   python src/inference.py --coco data/raw/annotations/_annotations.coco.json --batch-analysis")
+        print(f"   ")
+        print(f"   # Single image with enhanced visualization:")
+        print(f"   python src/inference.py --coco data/raw/annotations/_annotations.coco.json --image-id 123 --enhanced-viz")
+        print(f"   ")
+        print(f"   # Standard batch prediction:")
+        print(f"   python src/inference.py --coco data/raw/annotations/_annotations.coco.json")
 
 if __name__ == "__main__":
-    main()  
+    main()
