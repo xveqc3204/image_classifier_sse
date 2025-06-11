@@ -13,6 +13,7 @@ import argparse
 import gradio as gr
 import json
 import joblib
+import torch.serialization
 
 from model import create_model, SimpleRuleBasedClassifier, ModelEvaluator
 from object_analyzer import ObjectAnalyzer
@@ -63,7 +64,8 @@ class SSEObjectPredictor:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Load checkpoint
-        checkpoint = torch.load(model_path, map_location=self.device)
+        with torch.serialization.safe_globals([torch.serialization.safe_globals]):
+            checkpoint = torch.load(model_path, map_location=self.device)
         
         # Create and load model
         self.neural_model = create_model(self.config)
